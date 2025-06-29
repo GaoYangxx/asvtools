@@ -1,38 +1,60 @@
-# 确保你已安装并加载了 'dplyr' 和 'reshape2' 包
-# install.packages(c("dplyr", "reshape2", "tibble")) # 如果没有安装，请取消注释并运行
+# Ensure you have 'dplyr', 'reshape2', and 'tibble' packages installed and loaded
+# install.packages(c("dplyr", "reshape2", "tibble")) # Uncomment and run if not installed
 library(dplyr)
 library(reshape2)
 library(tibble)
 
-#' 根据多重条件筛选 ASV
+# --- Define Global Variables to Suppress 'no visible binding for global variable' Notes ---
+# This line is crucial for R CMD check, telling it that these variables
+# (commonly column names in dplyr operations) are expected to be global.
+utils::globalVariables(c("ASV", "Group", "value"))
+
+# --- Roxygen2 Imports for Functions Used Without '::' Prefix ---
+#' @importFrom dplyr select filter group_by summarise
+#' @importFrom magrittr %>%
+#' @importFrom stats filter # Explicitly import filter from stats if dplyr::filter is masked
+#' @importFrom tibble column_to_rownames # If you use this somewhere else
+#' @importFrom reshape2 melt # Explicitly import melt from reshape2
+
+#' @title Filter ASVs Based on Multiple Criteria
 #'
-#' 此函数根据以下四个条件筛选 ASV：
-#' 1. 在至少 `min_samples_present` 个样本中存在 (绝对丰度 > 0)。
-#' 2. 在至少 `min_samples_present` 个样本中绝对丰度大于 `min_abs_abundance_value`。
-#' 3. (可选) 在至少 `min_groups_present` 个指定 `Group` 列的 Group 中存在 (绝对丰度 > 0)。
-#' 4. 该 ASV 在所有样本中的整体平均相对丰度大于 `min_overall_avg_rel_abundance`。
+#' @description This function filters ASVs based on four conditions:
+#' \enumerate{
+#' \item Presence in at least `min_samples_present` samples (absolute abundance > 0).
+#' \item Absolute abundance greater than `min_abs_abundance_value` in at least
+#'       `min_samples_present` samples.
+#' \item (Optional) Presence in at least `min_groups_present` groups
+#'       (absolute abundance > 0) defined by the `group_column_name`.
+#' \item Overall average relative abundance of the ASV across all samples
+#'       is greater than `min_overall_avg_rel_abundance`.
+#' }
 #'
-#' @param asv_counts_df ASV 计数的数据框，行名为 ASV ID，列名为样本 ID。
-#' @param metadata_df (可选) 样本元数据的数据框，行名为样本 ID。如果提供，
-#'   将根据 `group_column_name` 进行分组筛选。默认值为 NULL。
-#' @param group_column_name (可选) 字符型，`metadata_df` 中用作分组依据的列名。
-#'   仅当 `metadata_df` 提供时有效。默认值为 NULL。
-#' @param min_samples_present ASV 必须在至少多少个样本中出现（绝对丰度 > 0）。
-#' @param min_abs_abundance_value ASV 在样本中绝对丰度需要大于的阈值。
-#' @param min_groups_present ASV 必须在至少多少个 Group 中存在（绝对丰度 > 0）。
-#' @param min_overall_avg_rel_abundance ASV 在所有样本中的整体平均相对丰度阈值。
+#' @param asv_counts_df A data frame of ASV counts, with ASV IDs as row names and sample IDs as column names.
+#' @param metadata_df (Optional) A data frame of sample metadata, with sample IDs as row names.
+#'                    If provided, grouping filter will be applied based on `group_column_name`.
+#'                    Default is NULL.
+#' @param group_column_name (Optional) Character string, the name of the column in `metadata_df`
+#'                          to use for grouping. Only effective if `metadata_df` is provided.
+#'                          Default is NULL.
+#' @param min_samples_present Minimum number of samples an ASV must be present in (absolute abundance > 0).
+#' @param min_abs_abundance_value Threshold for absolute abundance; an ASV's count in a sample must be
+#'                                 greater than or equal to this value to be considered "present" for
+#'                                 this specific condition.
+#' @param min_groups_present Minimum number of groups an ASV must be present in (absolute abundance > 0).
+#'                           Only applicable when `metadata_df` and `group_column_name` are provided.
+#' @param min_overall_avg_rel_abundance Threshold for the ASV's overall average relative abundance across all samples.
 #'
-#' @return 一个经过筛选的 ASV 计数数据框，只包含符合所有条件的 ASV。
+#' @return A data frame of filtered ASV counts, containing only ASVs that meet all specified criteria.
 #' @export
 #'
 #' @examples
-#' # 假设已经准备好 b_ASV 和 metadata_df (如前面示例所示)
+#' # Assuming b_ASV and metadata_df are already prepared (as shown in previous examples)
 #'
-#' # 示例 1: 使用所有筛选条件 (包括分组)
+#' # Example 1: Use all filtering criteria (including grouping)
 #' # filtered_asvs_full <- filter_asvs(
 #' #   asv_counts_df = b_ASV,
 #' #   metadata_df = metadata_df,
-#' #   group_column_name = "Group", # 假设元数据中有 'Group' 列
+#' #   group_column_name = "Group", # Assuming 'Group' column exists in metadata
 #' #   min_samples_present = 3,
 #' #   min_abs_abundance_value = 3,
 #' #   min_groups_present = 2,
@@ -40,12 +62,12 @@ library(tibble)
 #' # )
 #' # print(filtered_asvs_full)
 #'
-#' # 示例 2: 不使用分组筛选 (metadata_df 和 group_column_name 为 NULL)
+#' # Example 2: Without grouping filter (metadata_df and group_column_name are NULL)
 #' # filtered_asvs_no_group <- filter_asvs(
 #' #   asv_counts_df = b_ASV,
 #' #   min_samples_present = 3,
 #' #   min_abs_abundance_value = 3,
-#' #   min_overall_avg_rel_abundance = 0.0001 # min_groups_present 会被忽略
+#' #   min_overall_avg_rel_abundance = 0.0001 # min_groups_present will be ignored
 #' # )
 #' # print(filtered_asvs_no_group)
 filter_asvs <- function(asv_counts_df, metadata_df = NULL, group_column_name = NULL,
@@ -54,101 +76,101 @@ filter_asvs <- function(asv_counts_df, metadata_df = NULL, group_column_name = N
                         min_groups_present = 0,
                         min_overall_avg_rel_abundance = 0) {
 
-  #  检查输入数据
+  # Check input data
   if (!is.data.frame(asv_counts_df) || is.null(rownames(asv_counts_df)) || is.null(colnames(asv_counts_df))) {
-    stop("`asv_counts_df` 必须是一个数据框，且行名和列名不能为空。")
+    stop("`asv_counts_df` must be a data frame with non-NULL row and column names.")
   }
 
-  #  第一步：计算相对丰度并识别在足够多 Group 中存在的 ASV
+  # --- Step 1: Calculate relative abundance and identify ASVs present in enough groups ---
 
-  # 1.1 计算每个样本内的相对丰度
+  # 1.1 Calculate relative abundance within each sample
   relative_abundance <- as.data.frame(
     t(t(asv_counts_df) / colSums(asv_counts_df))
   )
 
-  # 1.2 计算每个 ASV 在所有样本中的整体平均相对丰度
+  # 1.2 Calculate overall average relative abundance for each ASV across all samples
   asv_overall_avg_rel_abundance <- rowMeans(relative_abundance)
 
-  # 1.3 识别在足够多 Group 中存在的 ASV (仅当提供元数据时执行)
+  # 1.3 Identify ASVs present in enough groups (only if metadata is provided)
   if (!is.null(metadata_df) && !is.null(group_column_name)) {
-    # 检查 Group 列是否存在
+    # Check if group column exists
     if (!group_column_name %in% colnames(metadata_df)) {
-      stop(paste0("错误：元数据中未找到指定的 Group 列 '", group_column_name, "'。请检查列名是否正确。"))
+      stop(paste0("Error: The specified group column '", group_column_name, "' was not found in the metadata. Please check the column name."))
     }
     if (!is.data.frame(metadata_df) || is.null(rownames(metadata_df))) {
-      stop("如果提供 `metadata_df`，它必须是一个数据框且行名不能为空 (应为样本 ID)。")
+      stop("If `metadata_df` is provided, it must be a data frame with non-NULL row names (which should be sample IDs).")
     }
 
-    # 将绝对丰度表转换为长格式，并添加 Group 信息
-    # 明确调用 reshape2::melt() 来避免冲突
+    # Convert absolute abundance table to long format and add Group information
+    # Explicitly call reshape2::melt() to avoid conflicts
     b_abs_long <- reshape2::melt(as.matrix(asv_counts_df), varnames = c("ASV", "Sample"))
 
-    # 获取样本到指定 Group 列的映射
+    # Get the mapping of samples to the specified group column
     sample_Groups <- metadata_df[[group_column_name]]
-    names(sample_Groups) <- rownames(metadata_df) # 使用行名作为样本ID
+    names(sample_Groups) <- rownames(metadata_df) # Use row names as sample IDs
 
-    # 确保长格式数据中的样本ID与元数据中的样本ID匹配
+    # Ensure sample IDs in long-format data match metadata sample IDs
     b_abs_long$Group <- sample_Groups[match(b_abs_long$Sample, names(sample_Groups))]
 
-    # 检查是否有未匹配的样本，通常phyloseq处理后应该匹配，但以防万一
+    # Check for unmatched samples, though usually phyloseq processing ensures a match
     if (any(is.na(b_abs_long$Group))) {
-      warning("警告：部分样本在元数据中未能找到对应的 Group 信息。这可能是由于样本ID不匹配造成的。")
+      warning("Warning: Some samples in the metadata could not be matched with corresponding group information. This might be due to mismatched sample IDs.")
     }
 
-    # 筛选出 ASV 存在 (计数 > 0) 的记录，并统计每个 ASV 出现在多少个独特的 Group 中
+    # Filter out records where ASV count is > 0, and count how many unique Groups each ASV appears in
     asv_group_presence_count <- b_abs_long %>%
-      filter(value > 0, !is.na(Group)) %>% # 只保留 ASV 计数大于 0 且 Group 非NA 的记录
-      group_by(ASV) %>%
-      summarise(unique_groups_present = n_distinct(Group), .groups = "drop")
+      dplyr::filter(value > 0, !is.na(Group)) %>% # Keep only records where ASV count > 0 and Group is not NA
+      dplyr::group_by(ASV) %>%
+      dplyr::summarise(unique_groups_present = dplyr::n_distinct(Group), .groups = "drop")
 
-    # 筛选出符合 Group 数量要求的 ASV 名称
+    # Filter for ASV names that meet the minimum group presence requirement
     asvs_in_enough_groups <- asv_group_presence_count$ASV[
       asv_group_presence_count$unique_groups_present >= min_groups_present
     ]
   } else {
-    # 如果没有提供 metadata_df 或 group_column_name，则所有 ASV 都视为满足 Group 存在条件
+    # If no metadata_df or group_column_name is provided, all ASVs are considered to meet group presence
     asvs_in_enough_groups <- rownames(asv_counts_df)
-    message("未提供 `metadata_df` 或 `group_column_name`，跳过基于 Group 的筛选。")
+    message("No `metadata_df` or `group_column_name` provided; skipping group-based filtering.")
   }
 
-  #  第二步：应用所有筛选条件
+  # --- Step 2: Apply all filtering conditions ---
 
-  # 初始化一个逻辑向量，用于标记哪些 ASV 符合所有条件
+  # Initialize a logical vector to mark which ASVs meet all conditions
   asv_to_keep_final <- rep(FALSE, nrow(asv_counts_df))
-  names(asv_to_keep_final) <- rownames(asv_counts_df) # 确保向量有行名，方便查找
+  names(asv_to_keep_final) <- rownames(asv_counts_df) # Ensure vector has row names for lookup
 
-  # 遍历每个 ASV
+  # Iterate through each ASV
   for (asv_name in rownames(asv_counts_df)) {
-    i <- which(rownames(asv_counts_df) == asv_name) # 获取当前 ASV 的行索引
+    i <- which(rownames(asv_counts_df) == asv_name) # Get row index of current ASV
 
-    current_asv_abs_counts <- asv_counts_df[i, ] # 当前 ASV 的绝对丰度数据
+    current_asv_abs_counts <- asv_counts_df[i, ] # Absolute abundance data for current ASV
 
-    # 条件 1：ASV 在至少 min_samples_present 个样本中出现 (绝对丰度 > 0)
+    # Condition 1: ASV present in at least min_samples_present samples (absolute abundance > 0)
     samples_where_present <- sum(current_asv_abs_counts > 0)
 
-    # 条件 2：ASV 在至少 min_samples_present 个样本中绝对丰度 > min_abs_abundance_value
+    # Condition 2: ASV absolute abundance > min_abs_abundance_value in at least min_samples_present samples
     samples_high_abs_abundance <- sum(current_asv_abs_counts >= min_abs_abundance_value)
 
-    # 条件 3：ASV 是否在满足 Group 存在条件的 ASV 列表中 (来自第一步的计算)
+    # Condition 3: Is ASV in the list of ASVs that meet group presence conditions (from Step 1)
     is_in_enough_groups <- (asv_name %in% asvs_in_enough_groups)
 
-    # 条件 4：ASV 在所有样本中的整体平均相对丰度 > min_overall_avg_rel_abundance
+    # Condition 4: ASV overall average relative abundance > min_overall_avg_rel_abundance
     is_high_overall_avg_rel_abundance <- (asv_overall_avg_rel_abundance[asv_name] >= min_overall_avg_rel_abundance)
 
-    # 检查所有四个条件是否都满足
+    # Check if all four conditions are met
     if (samples_where_present >= min_samples_present &&
         samples_high_abs_abundance >= min_samples_present &&
-        is_in_enough_groups && # Group 存在条件 (若未提供元数据则为 TRUE)
+        is_in_enough_groups && # Group presence condition (TRUE if no metadata provided)
         is_high_overall_avg_rel_abundance) {
-      asv_to_keep_final[i] <- TRUE # 如果所有条件都满足，则保留该 ASV
+      asv_to_keep_final[i] <- TRUE # If all conditions met, keep this ASV
     }
   }
 
-  #  第三步：筛选出符合最终条件的 ASV
+  # --- Step 3: Filter ASVs based on final conditions ---
   filtered_asv_counts_final <- asv_counts_df[asv_to_keep_final, ]
 
-  # 打印筛选结果数量
-  message(paste0("经过多重条件筛选后，保留了 ", nrow(filtered_asv_counts_final), " 个 ASV。"))
+  # Print number of filtered results
+  message(paste0("After filtering by multiple criteria, ", nrow(filtered_asv_counts_final), " ASVs were retained."))
 
   return(filtered_asv_counts_final)
 }
