@@ -1,8 +1,7 @@
-# Ensure you have 'dplyr', 'reshape2', and 'tibble' packages installed and loaded
-# install.packages(c("dplyr", "reshape2", "tibble")) # Uncomment and run if not installed
+# Ensure you have 'dplyr', 'reshape2' packages installed and loaded
+# install.packages(c("dplyr", "reshape2")) # Uncomment and run if not installed
 library(dplyr)
 library(reshape2)
-library(tibble)
 
 # --- Define Global Variables to Suppress 'no visible binding for global variable' Notes ---
 # This line is crucial for R CMD check, telling it that these variables
@@ -10,12 +9,10 @@ library(tibble)
 utils::globalVariables(c("ASV", "Group", "value"))
 
 # --- Roxygen2 Imports for Functions Used Without '::' Prefix ---
-#' @importFrom dplyr select filter group_by summarise
+#' @importFrom dplyr select filter group_by summarise n_distinct
 #' @importFrom magrittr %>%
-#' @importFrom stats filter # Explicitly import filter from stats if dplyr::filter is masked
-#' @importFrom tibble column_to_rownames # If you use this somewhere else
-#' @importFrom reshape2 melt # Explicitly import melt from reshape2
-
+#' @importFrom reshape2 melt
+#'
 #' @title Filter ASVs Based on Multiple Criteria
 #'
 #' @description This function filters ASVs based on four conditions:

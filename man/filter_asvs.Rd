@@ -2,7 +2,7 @@
 % Please edit documentation in R/filter_asvs.R
 \name{filter_asvs}
 \alias{filter_asvs}
-\title{根据多重条件筛选 ASV}
+\title{Filter ASVs Based on Multiple Criteria}
 \usage{
 filter_asvs(
   asv_counts_df,
@@ -15,42 +15,50 @@ filter_asvs(
 )
 }
 \arguments{
-\item{asv_counts_df}{ASV 计数的数据框，行名为 ASV ID，列名为样本 ID。}
+\item{asv_counts_df}{A data frame of ASV counts, with ASV IDs as row names and sample IDs as column names.}
 
-\item{metadata_df}{(可选) 样本元数据的数据框，行名为样本 ID。如果提供，
-将根据 \code{group_column_name} 进行分组筛选。默认值为 NULL。}
+\item{metadata_df}{(Optional) A data frame of sample metadata, with sample IDs as row names.
+If provided, grouping filter will be applied based on \code{group_column_name}.
+Default is NULL.}
 
-\item{group_column_name}{(可选) 字符型，\code{metadata_df} 中用作分组依据的列名。
-仅当 \code{metadata_df} 提供时有效。默认值为 NULL。}
+\item{group_column_name}{(Optional) Character string, the name of the column in \code{metadata_df}
+to use for grouping. Only effective if \code{metadata_df} is provided.
+Default is NULL.}
 
-\item{min_samples_present}{ASV 必须在至少多少个样本中出现（绝对丰度 > 0）。}
+\item{min_samples_present}{Minimum number of samples an ASV must be present in (absolute abundance > 0).}
 
-\item{min_abs_abundance_value}{ASV 在样本中绝对丰度需要大于的阈值。}
+\item{min_abs_abundance_value}{Threshold for absolute abundance; an ASV's count in a sample must be
+greater than or equal to this value to be considered "present" for
+this specific condition.}
 
-\item{min_groups_present}{ASV 必须在至少多少个 Group 中存在（绝对丰度 > 0）。}
+\item{min_groups_present}{Minimum number of groups an ASV must be present in (absolute abundance > 0).
+Only applicable when \code{metadata_df} and \code{group_column_name} are provided.}
 
-\item{min_overall_avg_rel_abundance}{ASV 在所有样本中的整体平均相对丰度阈值。}
+\item{min_overall_avg_rel_abundance}{Threshold for the ASV's overall average relative abundance across all samples.}
 }
 \value{
-一个经过筛选的 ASV 计数数据框，只包含符合所有条件的 ASV。
+A data frame of filtered ASV counts, containing only ASVs that meet all specified criteria.
 }
 \description{
-此函数根据以下四个条件筛选 ASV：
+This function filters ASVs based on four conditions:
 \enumerate{
-\item 在至少 \code{min_samples_present} 个样本中存在 (绝对丰度 > 0)。
-\item 在至少 \code{min_samples_present} 个样本中绝对丰度大于 \code{min_abs_abundance_value}。
-\item (可选) 在至少 \code{min_groups_present} 个指定 \code{Group} 列的 Group 中存在 (绝对丰度 > 0)。
-\item 该 ASV 在所有样本中的整体平均相对丰度大于 \code{min_overall_avg_rel_abundance}。
+\item Presence in at least \code{min_samples_present} samples (absolute abundance > 0).
+\item Absolute abundance greater than \code{min_abs_abundance_value} in at least
+\code{min_samples_present} samples.
+\item (Optional) Presence in at least \code{min_groups_present} groups
+(absolute abundance > 0) defined by the \code{group_column_name}.
+\item Overall average relative abundance of the ASV across all samples
+is greater than \code{min_overall_avg_rel_abundance}.
 }
 }
 \examples{
-# 假设已经准备好 b_ASV 和 metadata_df (如前面示例所示)
+# Assuming b_ASV and metadata_df are already prepared (as shown in previous examples)
 
-# 示例 1: 使用所有筛选条件 (包括分组)
+# Example 1: Use all filtering criteria (including grouping)
 # filtered_asvs_full <- filter_asvs(
 #   asv_counts_df = b_ASV,
 #   metadata_df = metadata_df,
-#   group_column_name = "Group", # 假设元数据中有 'Group' 列
+#   group_column_name = "Group", # Assuming 'Group' column exists in metadata
 #   min_samples_present = 3,
 #   min_abs_abundance_value = 3,
 #   min_groups_present = 2,
@@ -58,12 +66,12 @@ filter_asvs(
 # )
 # print(filtered_asvs_full)
 
-# 示例 2: 不使用分组筛选 (metadata_df 和 group_column_name 为 NULL)
+# Example 2: Without grouping filter (metadata_df and group_column_name are NULL)
 # filtered_asvs_no_group <- filter_asvs(
 #   asv_counts_df = b_ASV,
 #   min_samples_present = 3,
 #   min_abs_abundance_value = 3,
-#   min_overall_avg_rel_abundance = 0.0001 # min_groups_present 会被忽略
+#   min_overall_avg_rel_abundance = 0.0001 # min_groups_present will be ignored
 # )
 # print(filtered_asvs_no_group)
 }
