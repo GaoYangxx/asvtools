@@ -72,6 +72,17 @@ filter_asvs <- function(asv_counts_df, metadata_df = NULL, group_column_name = N
                         min_abs_abundance_value = 0,
                         min_groups_present = 0,
                         min_overall_avg_rel_abundance = 0) {
+  # Input validation for asv_counts_df
+  if (!is.data.frame(asv_counts_df) || is.null(rownames(asv_counts_df)) || is.null(colnames(asv_counts_df)) || ncol(asv_counts_df) == 0) {
+    stop("`asv_counts_df` must be a data frame with non-NULL row and column names and at least one column.")
+  }
+
+  # Input validation for metadata_df
+  if (!is.null(metadata_df)) {
+    if (!is.data.frame(metadata_df) || is.null(rownames(metadata_df)) || ncol(metadata_df) == 0) {
+      stop("If `metadata_df` is provided, it must be a data frame with non-NULL row names (expected to be sample IDs) and at least one column.")
+    }
+  }
 
   # Check input data
   if (!is.data.frame(asv_counts_df) || is.null(rownames(asv_counts_df)) || is.null(colnames(asv_counts_df))) {
@@ -111,7 +122,7 @@ filter_asvs <- function(asv_counts_df, metadata_df = NULL, group_column_name = N
 
     # Check for unmatched samples, though usually phyloseq processing ensures a match
     if (any(is.na(b_abs_long$Group))) {
-      warning("Warning: Some samples in the metadata could not be matched with corresponding group information. This might be due to mismatched sample IDs.")
+      warning("Warning: Some samples in the metadata could not be matched to their corresponding group information.")
     }
 
     # Filter out records where ASV count is > 0, and count how many unique Groups each ASV appears in
