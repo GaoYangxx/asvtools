@@ -1,9 +1,8 @@
 # 确保你已安装并加载了 'dplyr' 和 'reshape2' 包
-# install.packages(c("dplyr", "reshape2", "tibble", "phyloseq")) # 如果没有安装，请取消注释并运行
+# install.packages(c("dplyr", "reshape2", "tibble")) # 如果没有安装，请取消注释并运行
 library(dplyr)
 library(reshape2)
 library(tibble)
-library(phyloseq)
 
 #' 根据多重条件筛选 ASV
 #'
