@@ -165,9 +165,9 @@ filter_asvs <- function(asv_counts_df, metadata_df = NULL, group_column_name = N
 
     # Check if all four conditions are met
     if (samples_where_present >= min_samples_present &&
-        samples_high_abs_abundance >= min_samples_present &&
-        is_in_enough_groups && # Group presence condition (TRUE if no metadata provided)
-        is_high_overall_avg_rel_abundance) {
+      samples_high_abs_abundance >= min_samples_present &&
+      is_in_enough_groups && # Group presence condition (TRUE if no metadata provided)
+      is_high_overall_avg_rel_abundance) {
       asv_to_keep_final[i] <- TRUE # If all conditions met, keep this ASV
     }
   }

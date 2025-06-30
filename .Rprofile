@@ -15,4 +15,4 @@ options(
   )
 )
 
-PATH="D:/game/rtools45/usr/bin;D:/game/rtools45/bin;%PATH%"
+PATH <- "D:/game/rtools45/usr/bin;D:/game/rtools45/bin;%PATH%"
