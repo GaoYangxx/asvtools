@@ -1,7 +1,5 @@
 # Ensure you have 'dplyr', 'reshape2' packages installed and loaded
 # install.packages(c("dplyr", "reshape2")) # Uncomment and run if not installed
-library(dplyr)
-library(reshape2)
 
 # --- Define Global Variables to Suppress 'no visible binding for global variable' Notes ---
 # This line is crucial for R CMD check, telling it that these variables
