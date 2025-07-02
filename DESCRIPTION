@@ -13,6 +13,7 @@ Depends:
     R (>= 3.5)
 Imports: 
     dplyr,
+    lifecycle,
     magrittr,
     reshape2
 Suggests: 

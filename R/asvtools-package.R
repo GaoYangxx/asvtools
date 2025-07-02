@@ -5,6 +5,7 @@
 # roxygen namespace tags. Modify with care!
 ## usethis namespace: start
 #' @importFrom dplyr filter group_by n_distinct select summarise
+#' @importFrom lifecycle deprecated
 #' @importFrom magrittr %>%
 #' @importFrom reshape2 melt
 ## usethis namespace: end
