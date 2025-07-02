@@ -1,0 +1,9 @@
+utils::bibentry(
+  bibtype = "Manual",
+  title = "asvtools: Tools for ASV Data Analysis",
+  author = person("Yang", "Gao"),
+  year = 2025,
+  note = "R package version 0.0.0.9000",
+  url = "https://github.com/GaoYangxx/asvtools",
+  urldate = "2025-07-01"
+)

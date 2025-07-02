@@ -3,15 +3,14 @@ Title: Tools for ASV Data Analysis
 Version: 0.0.0.9000
 Authors@R: 
     person("Yang", "Gao", , "2421078944gy@gmail.com", role = c("aut", "cre"))
-Description: This package provides a suite of functions for filtering and
-    manipulating Amplicon Sequence Variant (ASV) data, commonly used in
-    microbiome and environmental sequencing studies. It includes tools for
-    applying various abundance and prevalence filters, facilitating
-    downstream analysis.
+Description: A suite of functions for filtering and manipulating Amplicon
+    Sequence Variant (ASV) data, commonly used in microbiome and
+    environmental sequencing studies. It includes tools for applying
+    various abundance and prevalence filters, facilitating downstream
+    analysis.
 License: MIT + file LICENSE
-Encoding: UTF-8
-Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+Depends: 
+    R (>= 3.5)
 Imports: 
     dplyr,
     magrittr,
@@ -19,6 +18,7 @@ Imports:
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
-Depends: 
-    R (>= 3.5)
+Encoding: UTF-8
 LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
