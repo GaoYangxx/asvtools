@@ -56,8 +56,8 @@ is greater than \code{min_overall_avg_rel_abundance}.
 
 # Example 1: Use all filtering criteria (including grouping)
 # filtered_asvs_full <- filter_asvs(
-#   asv_counts_df = b_ASV,
-#   metadata_df = metadata_df,
+#   asv_counts_df = ASVs,
+#   metadata_df = metadata,
 #   group_column_name = "Group", # Assuming 'Group' column exists in metadata
 #   min_samples_present = 3,
 #   min_abs_abundance_value = 3,
@@ -68,7 +68,7 @@ is greater than \code{min_overall_avg_rel_abundance}.
 
 # Example 2: Without grouping filter (metadata_df and group_column_name are NULL)
 # filtered_asvs_no_group <- filter_asvs(
-#   asv_counts_df = b_ASV,
+#   asv_counts_df = ASVs,
 #   min_samples_present = 3,
 #   min_abs_abundance_value = 3,
 #   min_overall_avg_rel_abundance = 0.0001 # min_groups_present will be ignored

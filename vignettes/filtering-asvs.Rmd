@@ -1,0 +1,169 @@
+---
+title: "Filtering ASV Data with asvtools"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Filtering ASV Data with asvtools}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r global_knitr_options, include = FALSE}
+knitr::opts_chunk$set(
+  # Remove collapse = TRUE, and comment = "#>" to simplify
+  # If you want to set figure width/alignment globally, you can uncomment these:
+  # figure.width = 7,
+  # fig.align = "center"
+)
+```
+
+```{r load_libraries}
+# Load the asvtools package to use its functions in the vignette
+library(asvtools)
+# Load other packages required for example data
+library(dplyr)
+library(reshape2)
+```
+
+# Filtering ASV Data with asvtools
+This vignette guides you on how to effectively filter Amplicon Sequence Variant (ASV) data using the asvtools package. Filtering is a crucial step in microbiome data analysis, helping to remove noise, reduce computational burden, and significantly improve the quality of downstream analyses.
+
+The filter_asvs() function offers flexible criteria, allowing you to precisely control which ASVs are retained based on your project's specific needs.
+
+# Understanding filter_asvs() Filtering Criteria
+The filter_asvs() function retains ASVs based on a combination of up to four configurable conditions:
+
+1.Minimum Sample Prevalence (min_samples_present): An ASV must be present (absolute abundance > 0) in at least a specified number of samples.
+
+2.Minimum Absolute Abundance Value (min_abs_abundance_value): In samples where an ASV is present, its absolute abundance must be greater than or equal to this threshold for the ASV to be considered "present" for this specific condition.
+
+3.Minimum Group Prevalence (min_groups_present) (Optional): If metadata and a grouping column are provided, an ASV must be present (absolute abundance > 0) in at least a specified number of unique groups defined by the group_column_name.
+
+4.Minimum Overall Average Relative Abundance (min_overall_avg_rel_abundance): The ASV's overall average relative abundance across all samples must be greater than or equal to this threshold.
+
+An ASV must satisfy all specified conditions to be retained.
+
+# Preparing Example Data
+To illustrate the filtering process, we'll create a small, simulated ASV count table and sample metadata. In a real-world analysis, you would load your own experimental data.
+
+# Create a dummy ASV count table
+```{r create_asv_table_data}
+asv_table_example <- data.frame(
+  JRG_1 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 18, 0, 0, 0, 33, 33, 0, 37, 0, 0, 0, 0, 0, 38, 0),
+  JRG_2 = c(0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 23, 0, 0, 0, 0, 29, 0, 0, 0, 32, 0, 0, 44, 0, 0, 0, 0, 0, 22, 0),
+  JRG_3 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36, 12, 0, 5, 0, 46, 0, 0, 0, 0, 0, 0, 25, 0, 0, 0, 0, 0, 28, 0),
+  JRG_4 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 19, 0, 0, 0, 27, 0, 83, 0, 27, 25, 0, 0, 0, 34, 37, 0, 29, 0, 0, 0, 0, 0, 19, 0),
+  JRG_5 = c(0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 43, 0, 20, 0, 0, 0, 0, 0, 18, 0),
+  JRG_6 = c(0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21, 0, 0, 0, 0, 0, 0, 0, 22, 0),
+  JJG_1 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 38, 49, 0, 0, 25, 28, 0, 0, 48, 0, 9, 18, 105, 0, 0, 0, 0, 44, 62, 9),
+  JJG_2 = c(0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 25, 64, 0, 0, 26, 31, 0, 0, 31, 23, 8, 0, 155, 0, 0, 15, 0, 52, 79, 16),
+  JJG_3 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 45, 0, 41, 30, 0, 0, 0, 26, 0, 11, 0, 213, 0, 0, 0, 0, 59, 51, 24),
+  JJG_4 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 3, 31, 56, 0, 15, 24, 37, 15, 0, 33, 10, 13, 0, 65, 41, 0, 14, 0, 37, 81, 19),
+  JJG_5 = c(0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 24, 32, 0, 0, 66, 55, 0, 0, 36, 0, 12, 0, 111, 0, 0, 0, 0, 62, 44, 30),
+  JJG_6 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 31, 0, 0, 33, 21, 0, 0, 25, 0, 7, 34, 102, 0, 0, 0, 5, 57, 37, 30),
+  TZG_1 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 36, 15, 0, 50, 0, 20, 0, 23, 16, 20, 4, 0, 0, 35, 25, 30, 224, 0, 0, 14),
+  TZG_2 = c(0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 35, 14, 0, 0, 0, 0, 18, 18, 0, 0, 0, 49, 0, 61, 52, 24, 88, 34, 0, 10),
+  TZG_3 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 39, 12, 121, 0, 0, 25, 26, 15, 26, 0, 0, 0, 76, 87, 37, 0, 61, 0, 0, 0),
+  TZG_4 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 14, 0, 31, 0, 25, 14, 18, 0, 0, 0, 0, 0, 43, 25, 0, 66, 0, 0, 24),
+  TZG_5 = c(2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 53, 0, 103, 0, 0, 0, 0, 10, 0, 0, 3, 0, 0, 63, 32, 24, 142, 32, 0, 0),
+  TZG_6 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 43, 12, 0, 32, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 29, 0, 60, 0, 0, 14),
+  PAG_1 = c(0, 0, 23, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 8, 0, 34, 0, 0, 0, 16, 122, 0, 0, 0, 0, 0, 23, 25, 0, 0, 34, 0),
+  PAG_2 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 9, 0, 0, 0, 0, 10, 0, 122, 0, 0, 0, 0, 0, 27, 21, 0, 0, 0, 0),
+  PAG_3 = c(0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 5, 4, 79, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 0),
+  PAG_4 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 8, 7, 428, 0, 0, 0, 0, 0, 0, 38, 0, 0, 15, 0),
+  PAG_5 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 11, 18, 598, 0, 0, 0, 0, 0, 0, 34, 0, 0, 0, 0),
+  PAG_6 = c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 36, 0, 0, 9, 0, 161, 0, 0, 0, 0, 0, 29, 23, 0, 0, 42, 0),
+  row.names = c("ASV33223", "ASV25409", "ASV28883", "ASV70267", "ASV48196", "ASV40031", "ASV65646", "ASV8421", "ASV58120", "ASV52240", "ASV16749", "ASV14431", "ASV75284", "ASV29542", "ASV59240", "ASV71098", "ASV11980", "ASV34954", "ASV43989", "ASV16613", "ASV201", "ASV138", "ASV11736", "ASV207", "ASV323", "ASV4139", "ASV4011", "ASV6667", "ASV317", "ASV11791", "ASV712", "ASV6543", "ASV14", "ASV6519", "ASV3823", "ASV3800", "ASV5338", "ASV105", "ASV117", "ASV337")
+)
+```
+
+# Create dummy sample metadata
+```{r create_metadata_data}
+metadata_df_example <- data.frame(
+  Sample.ID = c("JRG_1", "JRG_2", "JRG_3", "JRG_4", "JRG_5", "JRG_6", "JJG_1", "JJG_2", "JJG_3", "JJG_4", "JJG_5", "JJG_6", "TZG_1", "TZG_2", "TZG_3", "TZG_4", "TZG_5", "TZG_6", "PAG_1", "PAG_2", "PAG_3", "PAG_4", "PAG_5", "PAG_6"),
+  Group = c("JRG", "JRG", "JRG", "JRG", "JRG", "JRG", "JJG", "JJG", "JJG", "JJG", "JJG", "JJG", "TZG", "TZG", "TZG", "TZG", "TZG", "TZG", "PAG", "PAG", "PAG", "PAG", "PAG", "PAG"),
+  Origin = c("JR", "JR", "JR", "JR", "JR", "JR", "JJ", "JJ", "JJ", "JJ", "JJ", "JJ", "TZ", "TZ", "TZ", "TZ", "TZ", "TZ", "PA", "PA", "PA", "PA", "PA", "PA"),
+  Niche = c("G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G", "G"),
+  row.names = c("JRG_1", "JRG_2", "JRG_3", "JRG_4", "JRG_5", "JRG_6", "JJG_1", "JJG_2", "JJG_3", "JJG_4", "JJG_5", "JJG_6", "TZG_1", "TZG_2", "TZG_3", "TZG_4", "TZG_5", "TZG_6", "PAG_1", "PAG_2", "PAG_3", "PAG_4", "PAG_5", "PAG_6"),
+  stringsAsFactors = FALSE
+)
+```
+
+#Applying Filtering: Examples
+Now, let's demonstrate how to use the filter_asvs() function with different filtering strategies.
+
+Example 1: Basic Filtering (Prevalence and Absolute Abundance)
+We'll start by removing ASVs that are present in fewer than 3 samples, or whose absolute abundance in present samples is less than 5.
+
+```{r example_basic_filter}
+cat("--- Original ASV Count:", nrow(asv_table_example), "---\n")
+
+filtered_asvs_basic <- filter_asvs(
+  asv_counts_df = asv_table_example,
+  min_samples_present = 3,
+  min_abs_abundance_value = 5
+)
+
+cat("\n--- Filtered ASV Count:", nrow(filtered_asvs_basic), "---\n")
+print(filtered_asvs_basic)
+```
+
+Example 2: Filtering with Group Prevalence
+Here, we introduce metadata_df and group_column_name to add a condition that ASVs must be present in at least 2 distinct Groups.
+
+```{r example_group_filter}
+cat("--- Original ASV Count:", nrow(asv_table_example), "---\n")
+
+filtered_asvs_group <- filter_asvs(
+  asv_counts_df = asv_table_example,
+  metadata_df = metadata_df_example,
+  group_column_name = "Group", # Use the 'Group' column from metadata for grouping
+  min_samples_present = 2,
+  min_abs_abundance_value = 3,
+  min_groups_present = 2 # ASV must be present in at least 2 distinct 'Group's
+)
+
+cat("\n--- Filtered ASV Count:", nrow(filtered_asvs_group), "---\n")
+print(filtered_asvs_group)
+```
+
+Example 3: Filtering with Overall Average Relative Abundance
+In this example, we add the condition that an ASV's overall average relative abundance must be above 0.005 (0.5%).
+
+```{r example_relative_abundance_filter}
+cat("--- Original ASV Count:", nrow(asv_table_example), "---\n")
+
+filtered_asvs_rel_abund <- filter_asvs(
+  asv_counts_df = asv_table_example,
+  min_samples_present = 2,
+  min_abs_abundance_value = 1,
+  min_overall_avg_rel_abundance = 0.005 # ASV overall average relative abundance >= 0.5%
+)
+
+cat("\n--- Filtered ASV Count:", nrow(filtered_asvs_rel_abund), "---\n")
+print(filtered_asvs_rel_abund)
+```
+
+Example 4: Applying All Filtering Criteria
+Finally, we combine all filtering criteria to demonstrate the full power of filter_asvs().
+
+```{r example_all_filters}
+cat("--- Original ASV Count:", nrow(asv_table_example), "---\n")
+
+filtered_asvs_all <- filter_asvs(
+  asv_counts_df = asv_table_example,
+  metadata_df = metadata_df_example,
+  group_column_name = "Group",
+  min_samples_present = 3,
+  min_abs_abundance_value = 5,
+  min_groups_present = 2, # Requires presence in at least 2 groups
+  min_overall_avg_rel_abundance = 0.01 # Requires overall average relative abundance >= 1%
+)
+
+cat("\n--- Filtered ASV Count:", nrow(filtered_asvs_all), "---\n")
+print(filtered_asvs_all)
+```
+
+Conclusion
+This vignette has demonstrated the usage of the filter_asvs() function from the asvtools package and its versatile filtering capabilities. By flexibly applying criteria such as prevalence, absolute abundance, group prevalence, and overall average relative abundance, you can precisely control the quality control and preprocessing of your ASV data, laying a solid foundation for subsequent microbiome data analysis.
+
+Please adjust the parameters of filter_asvs() according to your specific research needs to achieve optimal filtering results.
