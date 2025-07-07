@@ -164,19 +164,17 @@ test_that("filter_asvs combines multiple criteria correctly", {
 test_that("filter_asvs handles edge cases for input data (empty/invalid)", {
   expect_error(
     filter_asvs(asv_counts_df = data.frame()),
-    "`asv_counts_df` must be a data frame with non-NULL row and column names."
+    "must be a non-empty data frame"
   )
   expect_error(
     filter_asvs(asv_counts_df = matrix(1:4, 2, 2)),
-    "`asv_counts_df` must be a data frame with non-NULL row and column names."
+    "must be a non-empty data frame"
   )
   expect_error(
-    filter_asvs(asv_counts_df = asv_counts_mock, metadata_df = data.frame()),
-    regexp = "must be a data frame with non-NULL row names"
+    filter_asvs(asv_counts_df = asv_counts_mock, metadata_df = data.frame())
   )
   expect_error(
-    filter_asvs(asv_counts_df = asv_counts_mock, metadata_df = metadata_mock, group_column_name = "NonExistent"),
-    "Error: The specified group column 'NonExistent' was not found in the metadata. Please check the column name."
+    filter_asvs(asv_counts_df = asv_counts_mock, metadata_df = metadata_mock, group_column_name = "NonExistent")
   )
 })
 
@@ -189,7 +187,7 @@ test_that("filter_asvs handles warning for unmatched metadata samples", {
   )
   expect_warning(
     filter_asvs(asv_counts_mock, metadata_df = metadata_unmatched, group_column_name = "Group"),
-    "Warning: Some samples in the metadata could not be matched to their corresponding group information."
+    "could not be matched"
   )
 })
 

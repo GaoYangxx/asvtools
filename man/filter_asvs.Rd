@@ -15,63 +15,33 @@ filter_asvs(
 )
 }
 \arguments{
-\item{asv_counts_df}{A data frame of ASV counts, with ASV IDs as row names and sample IDs as column names.}
+\item{asv_counts_df}{A data frame: rows = ASV IDs, columns = sample IDs (absolute abundances).}
 
-\item{metadata_df}{(Optional) A data frame of sample metadata, with sample IDs as row names.
-If provided, grouping filter will be applied based on \code{group_column_name}.
-Default is NULL.}
+\item{metadata_df}{Optional sample metadata (row names = sample IDs).}
 
-\item{group_column_name}{(Optional) Character string, the name of the column in \code{metadata_df}
-to use for grouping. Only effective if \code{metadata_df} is provided.
-Default is NULL.}
+\item{group_column_name}{Optional column name in metadata to use for group filtering.}
 
-\item{min_samples_present}{Minimum number of samples an ASV must be present in (absolute abundance > 0).}
+\item{min_samples_present}{Minimum number of samples in which an ASV must appear.}
 
-\item{min_abs_abundance_value}{Threshold for absolute abundance; an ASV's count in a sample must be
-greater than or equal to this value to be considered "present" for
-this specific condition.}
+\item{min_abs_abundance_value}{Threshold to consider ASV "present" in a sample.}
 
-\item{min_groups_present}{Minimum number of groups an ASV must be present in (absolute abundance > 0).
-Only applicable when \code{metadata_df} and \code{group_column_name} are provided.}
+\item{min_groups_present}{Minimum number of distinct groups an ASV must appear in.}
 
-\item{min_overall_avg_rel_abundance}{Threshold for the ASV's overall average relative abundance across all samples.}
+\item{min_overall_avg_rel_abundance}{Minimum average relative abundance across all samples.}
 }
 \value{
-A data frame of filtered ASV counts, containing only ASVs that meet all specified criteria.
+Filtered ASV table as a data frame.
 }
 \description{
-This function filters ASVs based on four conditions:
+This function filters ASVs based on multiple user-defined criteria:
 \enumerate{
-\item Presence in at least \code{min_samples_present} samples (absolute abundance > 0).
-\item Absolute abundance greater than \code{min_abs_abundance_value} in at least
-\code{min_samples_present} samples.
-\item (Optional) Presence in at least \code{min_groups_present} groups
-(absolute abundance > 0) defined by the \code{group_column_name}.
-\item Overall average relative abundance of the ASV across all samples
-is greater than \code{min_overall_avg_rel_abundance}.
+\item Total abundance across all samples ≥ \code{min_total_abundance}
+\item Presence in ≥ \code{min_samples_present} samples
+\item Abundance ≥ \code{min_abs_abundance_value} in ≥ \code{min_samples_present} samples
+\item (Optional) Presence in ≥ \code{min_groups_present} groups (\code{metadata_df} and \code{group_column_name} required)
+\item Overall average relative abundance ≥ \code{min_overall_avg_rel_abundance}
 }
 }
 \examples{
-# Assuming b_ASV and metadata_df are already prepared (as shown in previous examples)
-
-# Example 1: Use all filtering criteria (including grouping)
-# filtered_asvs_full <- filter_asvs(
-#   asv_counts_df = ASVs,
-#   metadata_df = metadata,
-#   group_column_name = "Group", # Assuming 'Group' column exists in metadata
-#   min_samples_present = 3,
-#   min_abs_abundance_value = 3,
-#   min_groups_present = 2,
-#   min_overall_avg_rel_abundance = 0.0001
-# )
-# print(filtered_asvs_full)
-
-# Example 2: Without grouping filter (metadata_df and group_column_name are NULL)
-# filtered_asvs_no_group <- filter_asvs(
-#   asv_counts_df = ASVs,
-#   min_samples_present = 3,
-#   min_abs_abundance_value = 3,
-#   min_overall_avg_rel_abundance = 0.0001 # min_groups_present will be ignored
-# )
-# print(filtered_asvs_no_group)
+# filtered <- filter_asvs(b_ASV, metadata, "Group", 3, 4, 2, 0.0001, 10)
 }

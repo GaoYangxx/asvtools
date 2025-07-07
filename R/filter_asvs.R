@@ -17,77 +17,90 @@
 #' @param min_abs_abundance_value Threshold to consider ASV "present" in a sample.
 #' @param min_groups_present Minimum number of distinct groups an ASV must appear in.
 #' @param min_overall_avg_rel_abundance Minimum average relative abundance across all samples.
-#' @param min_total_abundance Minimum total count (row sum) across all samples.
 #'
 #' @return Filtered ASV table as a data frame.
 #' @export
 #'
 #' @examples
 #' # filtered <- filter_asvs(b_ASV, metadata, "Group", 3, 4, 2, 0.0001, 10)
-filter_asvs <- function(asv_counts_df,
-                        metadata_df = NULL,
-                        group_column_name = NULL,
+filter_asvs <- function(asv_counts_df, metadata_df = NULL, group_column_name = NULL,
                         min_samples_present = 0,
                         min_abs_abundance_value = 0,
                         min_groups_present = 0,
-                        min_overall_avg_rel_abundance = 0,
-                        min_total_abundance = 0) {
-
-  # Input validation
-  if (!is.data.frame(asv_counts_df) || is.null(rownames(asv_counts_df)) || is.null(colnames(asv_counts_df))) {
-    stop("`asv_counts_df` must be a data frame with non-NULL row and column names.")
+                        min_overall_avg_rel_abundance = 0) {
+  # --- Validate asv_counts_df ---
+  if (!is.data.frame(asv_counts_df) || nrow(asv_counts_df) == 0 || ncol(asv_counts_df) == 0 ||
+      is.null(rownames(asv_counts_df)) || is.null(colnames(asv_counts_df))) {
+    stop("`asv_counts_df` must be a non-empty data frame with row and column names.")
   }
+
+  # --- Validate metadata_df ---
   if (!is.null(metadata_df)) {
-    if (!is.data.frame(metadata_df) || is.null(rownames(metadata_df))) {
-      stop("`metadata_df` must be a data frame with non-NULL row names.")
+    if (!is.data.frame(metadata_df) || nrow(metadata_df) == 0 || ncol(metadata_df) == 0 ||
+        is.null(rownames(metadata_df))) {
+      stop("If `metadata_df` is provided, it must be a non-empty data frame with row names.")
     }
-    if (!is.null(group_column_name) && !(group_column_name %in% colnames(metadata_df))) {
-      stop(paste0("Group column '", group_column_name, "' not found in metadata."))
+
+    if (!is.null(group_column_name)) {
+      if (!(group_column_name %in% colnames(metadata_df))) {
+        stop(paste0("The specified group column '", group_column_name, "' was not found in the metadata. Please check the column name."))
+      }
     }
   }
 
-  # Relative abundance matrix
-  col_total <- colSums(asv_counts_df)
-  col_total[col_total == 0] <- 1  # Prevent division by 0
-  relative_abundance <- t(t(asv_counts_df) / col_total)
+  # --- Step 1: Calculate relative abundance and group presence ---
+
+  # 1.1 Relative abundance
+  relative_abundance <- as.data.frame(
+    t(t(asv_counts_df) / colSums(asv_counts_df))
+  )
   asv_overall_avg_rel_abundance <- rowMeans(relative_abundance)
 
-  # ASVs in enough groups (if applicable)
+  # 1.2 Group presence (only if metadata and group column provided)
   if (!is.null(metadata_df) && !is.null(group_column_name)) {
-    long_df <- reshape2::melt(as.matrix(asv_counts_df), varnames = c("ASV", "Sample"))
-    long_df$Group <- metadata_df[match(long_df$Sample, rownames(metadata_df)), group_column_name]
-    group_counts <- long_df %>%
+    b_abs_long <- reshape2::melt(as.matrix(asv_counts_df), varnames = c("ASV", "Sample"))
+    sample_Groups <- metadata_df[[group_column_name]]
+    names(sample_Groups) <- rownames(metadata_df)
+
+    b_abs_long$Group <- sample_Groups[match(b_abs_long$Sample, names(sample_Groups))]
+
+    if (any(is.na(b_abs_long$Group))) {
+      warning("Some samples in the metadata could not be matched to their corresponding group information.")
+    }
+
+    asv_group_presence_count <- b_abs_long %>%
       dplyr::filter(value > 0, !is.na(Group)) %>%
       dplyr::group_by(ASV) %>%
-      dplyr::summarise(groups_present = dplyr::n_distinct(Group), .groups = "drop")
-    asvs_in_enough_groups <- group_counts$ASV[group_counts$groups_present >= min_groups_present]
+      dplyr::summarise(unique_groups_present = dplyr::n_distinct(Group), .groups = "drop")
+
+    asvs_in_enough_groups <- asv_group_presence_count$ASV[
+      asv_group_presence_count$unique_groups_present >= min_groups_present
+    ]
   } else {
     asvs_in_enough_groups <- rownames(asv_counts_df)
-    message("Group filtering skipped (metadata or group column not provided).")
+    message("No `metadata_df` or `group_column_name` provided; skipping group-based filtering.")
   }
 
-  # Filter logic
-  keep_flags <- logical(nrow(asv_counts_df))
-  names(keep_flags) <- rownames(asv_counts_df)
+  # --- Step 2: Apply filtering ---
+  asv_to_keep_final <- rep(FALSE, nrow(asv_counts_df))
+  names(asv_to_keep_final) <- rownames(asv_counts_df)
 
-  for (i in seq_len(nrow(asv_counts_df))) {
-    asv_name <- rownames(asv_counts_df)[i]
-    row_vals <- asv_counts_df[i, ]
+  for (asv_name in rownames(asv_counts_df)) {
+    current_asv <- asv_counts_df[asv_name, ]
+    samples_present <- sum(current_asv > 0)
+    samples_above_threshold <- sum(current_asv >= min_abs_abundance_value)
+    is_in_enough_groups <- asv_name %in% asvs_in_enough_groups
+    is_high_avg_rel_abundance <- asv_overall_avg_rel_abundance[asv_name] >= min_overall_avg_rel_abundance
 
-    # Conditions
-    cond1 <- sum(row_vals > 0) >= min_samples_present
-    cond2 <- sum(row_vals >= min_abs_abundance_value) >= min_samples_present
-    cond3 <- asv_name %in% asvs_in_enough_groups
-    cond4 <- asv_overall_avg_rel_abundance[asv_name] >= min_overall_avg_rel_abundance
-    cond5 <- sum(row_vals) >= min_total_abundance
-
-    if (cond1 && cond2 && cond3 && cond4 && cond5) {
-      keep_flags[i] <- TRUE
+    if (samples_present >= min_samples_present &&
+        samples_above_threshold >= min_samples_present &&
+        is_in_enough_groups &&
+        is_high_avg_rel_abundance) {
+      asv_to_keep_final[asv_name] <- TRUE
     }
   }
 
-  filtered_df <- asv_counts_df[keep_flags, , drop = FALSE]
-  message("Retained ", nrow(filtered_df), " ASVs after applying all filtering conditions.")
-
-  return(filtered_df)
+  filtered_asvs <- asv_counts_df[asv_to_keep_final, , drop = FALSE]
+  message("Retained ", nrow(filtered_asvs), " ASVs after applying all filtering conditions.")
+  return(filtered_asvs)
 }
