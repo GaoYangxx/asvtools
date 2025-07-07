@@ -178,7 +178,7 @@ whose absolute abundance in present samples is less than 5.</p>
 <span>  min_samples_present <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>  min_abs_abundance_value <span class="op">=</span> <span class="fl">5</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Group filtering skipped (metadata or group column not provided).</span></span></code></pre>
+<pre><code><span><span class="co">## No `metadata_df` or `group_column_name` provided; skipping group-based filtering.</span></span></code></pre>
 <pre><code><span><span class="co">## Retained 20 ASVs after applying all filtering conditions.</span></span></code></pre>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\n--- Filtered ASV Count:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">filtered_asvs_basic</span><span class="op">)</span>, <span class="st">"---\n"</span><span class="op">)</span></span></code></pre></div>
@@ -347,7 +347,7 @@ abundance must be above 0.005 (0.5%).</p>
 <span>  min_abs_abundance_value <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  min_overall_avg_rel_abundance <span class="op">=</span> <span class="fl">0.005</span> <span class="co"># ASV overall average relative abundance &gt;= 0.5%</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Group filtering skipped (metadata or group column not provided).</span></span></code></pre>
+<pre><code><span><span class="co">## No `metadata_df` or `group_column_name` provided; skipping group-based filtering.</span></span></code></pre>
 <pre><code><span><span class="co">## Retained 20 ASVs after applying all filtering conditions.</span></span></code></pre>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\n--- Filtered ASV Count:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">filtered_asvs_rel_abund</span><span class="op">)</span>, <span class="st">"---\n"</span><span class="op">)</span></span></code></pre></div>
